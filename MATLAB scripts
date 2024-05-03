@@ -1,0 +1,57 @@
+// Reading STL FILE:
+stlStruct = stlread('filename.stl'); 
+
+// Calculating VOLUME:
+volume = 0;
+for i = 1:size(stlStruct.ConnectivityList, 1)
+    v1 = stlStruct.Points(stlStruct.ConnectivityList(i, 1), :);
+    v2 = stlStruct.Points(stlStruct.ConnectivityList(i, 2), :);
+    v3 = stlStruct.Points(stlStruct.ConnectivityList(i, 3), :);
+    volume = volume + (1/6) * abs(dot(cross(v2 - v1, v3 - v1), [0 0 1]));
+End
+
+// Calculating MASS:
+density = 985; % example density in kg/m^3
+mass = volume * density;
+
+
+// Calculating Center of Mass:
+centerOfMass = [0 0 0];
+totalVolume = 0;
+for i = 1:size(stlStruct.ConnectivityList, 1)
+    v1 = stlStruct.Points(stlStruct.ConnectivityList(i, 1), :);
+    v2 = stlStruct.Points(stlStruct.ConnectivityList(i, 2), :);
+    v3 = stlStruct.Points(stlStruct.ConnectivityList(i, 3), :);
+    tetraVolume = (1/6) * abs(dot(cross(v2 - v1, v3 - v1), [0 0 1]));
+    centerOfMass = centerOfMass + tetraVolume * (v1 + v2 + v3) / 4;
+    totalVolume = totalVolume + tetraVolume;
+end
+centerOfMass = centerOfMass / totalVolume;
+
+// Calculating Mass of Inertia Tensor
+inertia = zeros(3, 3);
+for i = 1:size(stlStruct.ConnectivityList, 1)
+    v1 = stlStruct.Points(stlStruct.ConnectivityList(i, 1), :) - centerOfMass;
+    v2 = stlStruct.Points(stlStruct.ConnectivityList(i, 2), :) - centerOfMass;
+    v3 = stlStruct.Points(stlStruct.ConnectivityList(i, 3), :) - centerOfMass;
+    tetraVolume = (1/6) * abs(dot(cross(v2 - v1, v3 - v1), [0 0 1]));
+    inertia = inertia + density * tetraVolume * ...
+        (1/60) * [(v1.^2 + v2.^2 + v3.^2) * eye(3) - ...
+        [v1.*v1' v1.*v2' v1.*v3'; v2.*v1' v2.*v2' v2.*v3'; v3.*v1' v3.*v2' v3.*v3']];
+end
+
+
+
+// Calculating Logitudinal Segment Length
+maxDistance = 0;
+for i = 1:size(stlStruct.Points, 1)
+    for j = i+1:size(stlStruct.Points, 1)
+        distance = norm(stlStruct.Points(i, :) - stlStruct.Points(j, :));
+        if distance > maxDistance
+            maxDistance = distance;
+        end
+    end
+end
+longitudinalLength = maxDistance;
+
+
